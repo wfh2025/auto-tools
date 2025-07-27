@@ -1,6 +1,30 @@
 #!/usr/bin/env bash
 export PROJ_ROOT=$(cd "$(dirname -- "$0")" && pwd -P)
 
+set -euo pipefail
+export HISTORY_BACKUP="${PROJ_ROOT}"/history.txt
+export CURRENT_BACKUP="${PROJ_ROOT}"/current_bak.txt
+
+function backup() {
+    local src_abs_path src_base dst_prefix dst_base
+    src_abs_path=$1                     # /a/b/c
+    dst_prefix=$2
+    if [ ! -d "${src_abs_path}" ]; then
+        echo "${src_abs_path} not exist"
+        return 1
+    fi
+    src_base=$(basename "${src_abs_path}") # c
+    dst_base="backup_${src_base}_$(date +%Y%m%d%H%M%S)"
+
+    echo "${dst_base}" >> "${HISTORY_BACKUP}"
+    if ! cp -r "${src_abs_path}" "${dst_prefix}"/"${dst_base}"; then
+        echo "failed to backup, ${dst_prefix}/${dst_base}"
+        return 1
+    fi
+    echo "${dst_base}" > "${CURRENT_BACKUP}"
+    return 0
+}
+
 # 解压修改权限
 # $1: 压缩包路径, eg: /a/b/hello.tar.gz
 function upgrade() {
@@ -10,7 +34,7 @@ function upgrade() {
     pkg_path=$1
     if [ ! -f "${pkg_path}" ]; then
         echo "${pkg_path} not exist"
-        exit 1
+        return 1
     fi
 
     # 解析解压后的目录名
@@ -46,12 +70,14 @@ function upgrade() {
     return 0
 }
 
+function restore() {
+    local cur_name
+    cur_name=$(cat "${CURRENT_BACKUP}")
+    echo "|${cur_name}|"
+}
+
 function dbg() {
-    local param=$1
-    if [ -d "${param}" ]; then
-        echo "${param} exist"
-        exit 0
-    fi
+    echo "xxx"
 }
 
 function main() {
