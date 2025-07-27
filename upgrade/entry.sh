@@ -6,9 +6,13 @@ export HISTORY_BACKUP="${PROJ_ROOT}"/history.txt
 export CURRENT_BACKUP="${PROJ_ROOT}"/current_bak.txt
 
 function backup() {
-    local src_abs_path src_base dst_prefix dst_base
-    src_abs_path=$1                     # /a/b/c
-    dst_prefix=$2
+    local src_base dst_base
+    if [ $# -ne 2 ]; then
+        echo "Usage: backup <src> <dst>"
+        return 1
+    fi
+
+    local src_abs_path=$1                     # /a/b/c
     if [ ! -d "${src_abs_path}" ]; then
         echo "${src_abs_path} not exist"
         return 1
@@ -16,11 +20,17 @@ function backup() {
     src_base=$(basename "${src_abs_path}") # c
     dst_base="backup_${src_base}_$(date +%Y%m%d%H%M%S)"
 
-    echo "${dst_base}" >> "${HISTORY_BACKUP}"
+    local dst_prefix=$2
+    if [ ! -d "${dst_prefix}" ]; then
+        echo "${dst_prefix} not exist"
+        return 1
+    fi
+
     if ! cp -r "${src_abs_path}" "${dst_prefix}"/"${dst_base}"; then
         echo "failed to backup, ${dst_prefix}/${dst_base}"
         return 1
     fi
+    echo "${dst_base}" >> "${HISTORY_BACKUP}"
     echo "${dst_base}" > "${CURRENT_BACKUP}"
     return 0
 }
